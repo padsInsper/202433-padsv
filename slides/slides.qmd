@@ -1,0 +1,625 @@
+---
+title: "Prática Avançada de Data Science e Visualization"
+author: "Laboratórios"
+format:
+  insper-revealjs:
+    embed-resources: true
+    hash-type: number
+execute:
+  freeze: true
+---
+
+## Olá, tudo bem?
+
+Meu papel nessa disciplina será ajudar no aprendizado da parte dos códigos etc.
+
+```{r}
+#| include: false
+library(tidyverse)
+match_min <- read_rds(here::here("data-raw/rds/match_min.rds"))
+team <- read_rds(here::here("data-raw/rds/team.rds"))
+team_attributes <- read_rds(
+  here::here("data-raw/rds/team_attributes.rds")
+)
+```
+
+
+::: incremental
+
+Também posso dar pitacos nas apresentações e salvá-los em situações de desespero (atendimentos extras).
+
+:::
+
+## Sobre como posso ajudar
+
+Coisas que eu conheço bastante:
+
+- R / tidyverse
+- extensões do ggplot2
+- htmlwidgets
+- Shiny
+
+Coisas que eu conheço um pouco:
+
+- Python / pandas
+- seaborn
+
+## Dinâmica
+
+Nesse lab, nosso objetivo será construir soluções de transformação e visualização de dados.
+
+-   Os grupos são os que montamos para o trabalho final. Se os grupos ainda não existirem, podemos usar provisioramente os do trimestre passado.
+
+-   As tarefas serão imitar um gráfico que eu montei para vocês usando ggplot2. Eu mostrarei apenas a imagem. Posso dar dicas no meio do caminho.
+
+-   O grupo que conseguir fazer o gráfico primeiro ganhará **prêmios**.
+
+## Base olist
+
+Utilizaremos a base de dados da **olist**, para que vocês possam aproveitar os trabalhos nas atividades integradoras.
+
+::: incremental
+
+-   Para garantir que as visualizações funcionam, disponibilizei uma base que eu montei (pode conter erros) [no material dos labs](https://github.com/padsInsper/202433-padsv/releases/tag/dados).
+
+-   A base está tanto em `.parquet` (usar pacote [`{arrow}`](https://arrow.apache.org/docs/r/)) quanto em `.rds` (ler com `readr::read_rds()`). Use a que for mais confortável.
+
+:::
+
+## Base olist
+
+```{r}
+#| echo: true
+olist <- readr::read_rds(here::here("data-raw/rds/olist_items.rds"))
+
+dplyr::glimpse(olist)
+```
+
+---
+
+#### Exercício 01 🍪
+
+::: panel-tabset
+
+#### Resultado esperado
+
+```{r}
+#| fig-align: center
+#| out-width: 90%
+knitr::include_graphics("img/ex01.png")
+```
+
+#### Dicas
+
+- Usar a coluna `types`
+
+- Estudar a função `theme()`
+
+- As `geom_label()` ficam na metade da altura da barra.
+
+#### Código
+
+```{r}
+#| eval: false
+#| echo: false
+
+library(ggplot2)
+
+olist |>
+  dplyr::count(types) |>
+  dplyr::mutate(types = forcats::fct_reorder(types, n)) |>
+  dplyr::filter(n > 100) |>
+  dplyr::mutate(n = n/1000) |>
+  ggplot(aes(x = n, y = types)) +
+  geom_col(fill = "#8ae3d7", width = .5) +
+  geom_label(aes(label = round(n, 2), x = n/2)) +
+  theme_dark(16) +
+  labs(
+    x = "Quantidade\n(milhares)",
+    y = "Forma de pagamento",
+    title = "Formas de pagamento mais comuns",
+    subtitle = "Considerando tipos com mais de 100 observações",
+    caption = "Fonte: Olist"
+  ) +
+  theme(
+    panel.background = element_rect(fill = "gray20"),
+    plot.background = element_rect(fill = "gray10"),
+    text = element_text(family = "serif", colour = "white"),
+    axis.text = element_text(family = "serif", colour = "white"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+
+
+:::
+
+---
+
+#### Exercício 02 🍪🍪
+
+::: panel-tabset
+
+#### Resultado esperado
+
+```{r}
+#| fig-align: center
+#| out-width: 90%
+knitr::include_graphics("img/ex02.png")
+```
+
+#### Dicas
+
+- Usar `scale_x_date()`
+
+- Estudar `scale_color_viridis_d()`
+
+- `lubridate::floor_date()` para aproximar datas
+
+- `case_when()` ou `fct_other()` para reclassificar uma variável categórica
+
+- filtrar a base para o intervalo de datas entre "2017-01-01" e "2018-07-01"
+
+- devemos contar/agrupar por `data` (mês) e `estado`
+
+#### Código
+
+```{r}
+#| eval: false
+#| echo: false
+
+olist |>
+  dplyr::mutate(
+    data = as.Date(order_purchase_timestamp),
+    data = lubridate::floor_date(data, "month"),
+    estado = forcats::fct_other(
+      seller_state,
+      keep = c("SP", "RJ"),
+      other_level = "Outros"
+    ),
+    # estados = dplyr::case_when(
+    #   seller_state %in% c("SP", "RJ") ~ seller_state,
+    #   TRUE ~ "Outros"
+    # ),
+    # estados = dplyr::case_match(
+    #   seller_state,
+    #   c("SP", "RJ") ~ seller_state,
+    #   .default = "Outros"
+    # )
+  ) |>
+  dplyr::filter(
+    # dplyr::between()
+    data >= "2017-01-01",
+    data <= "2018-07-01"
+  ) |>
+  dplyr::count(data, estado) |>
+  ggplot() +
+  aes(x = data, y = n, colour = estado) +
+  geom_line(size = 2) +
+  scale_color_viridis_d(begin = .2, end = .8) +
+  labs(
+    x = "Data",
+    y = "Quantidade",
+    title = "São Paulo tem mais vendas",
+    subtitle = "O que é esperado, pois a população é maior 😬",
+    caption = "Fonte: Olist",
+    color = "Estado"
+  ) +
+  scale_x_date(
+    date_breaks = "3 month",
+    date_labels = "%b\n%Y"
+  ) +
+  theme_light(15) +
+  theme(
+    legend.position = "bottom"
+  )
+
+```
+
+:::
+
+---
+
+#### Exercício 03 🍪🍪🍪
+
+::: panel-tabset
+
+#### Resultado esperado
+
+```{r}
+#| fig-align: center
+#| out-width: 90%
+knitr::include_graphics("img/ex03.png")
+```
+
+#### Dicas
+
+- Usar o pacote `{ggridges}`.
+
+- Para pintar apenas uma categoria, crie uma coluna.
+
+- Para anotações no gráfico (como "Mediana"), use a função `annotate()`.
+
+- Para fazer os reais, use a função `scales::scales_dollar_format()`.
+
+#### Código
+
+```{r}
+#| eval: false
+#| echo: false
+
+items_agg <- olist |>
+  group_by(product_category_name) |>
+  filter(n() > 4000) |>
+  ungroup() |>
+  filter(product_category_name != "ferramentas_jardim") |>
+  mutate(
+    product_category_name = stringr::str_replace_all(
+      product_category_name, "_", " "
+    ),
+    product_category_name = stringr::str_to_title(product_category_name),
+    product_category_name = fct_reorder(
+      product_category_name, price, median
+    ),
+    relogios = ifelse(
+      product_category_name == "Relogios Presentes",
+      "destacar", "não destacar"
+    )
+  )
+
+mediana <- items_agg |>
+  summarise(mediana = median(price))
+
+items_agg |>
+  ggplot() +
+  aes(x = price, y = product_category_name, fill = relogios) +
+  ggridges::geom_density_ridges(
+    quantile_lines = TRUE,
+    quantiles = 2,
+    na.rm = FALSE,
+    n = 2048,
+    show.legend = FALSE
+  ) +
+  scale_x_continuous(
+    limits = c(0, NA),
+    labels = scales::dollar_format(prefix = "R$")
+  ) +
+  coord_cartesian(xlim = c(0, 300)) +
+  geom_vline(
+    aes(xintercept = mediana),
+    data = mediana,
+    linetype = 2,
+    colour = "red"
+  ) +
+  scale_fill_manual(
+    values = c("#6686e6", "#eaeaea")
+  ) +
+  theme_minimal() +
+  annotate(
+    "text",
+    x = mediana$mediana,
+    y = 0.8,
+    hjust = -0.1,
+    label = "Mediana",
+    colour = "red",
+    size = 3
+  ) +
+  labs(
+    x = "Preço",
+    y = "Categoria",
+    title = "Relógios são caros!!"
+  ) +
+  theme(
+    plot.title.position = "plot"
+  )
+```
+
+:::
+
+---
+
+#### Exercício 04 🍪🍪🍪🍪
+
+::: panel-tabset
+
+#### Resultado esperado
+
+```{r}
+#| fig-align: center
+#| out-width: 90%
+knitr::include_graphics("img/ex04.png")
+```
+
+#### Dicas
+
+- Faça a contagem por estado, latitude/longtude do seller e customer
+
+- Filtre para os estados de interesse
+
+- Use `slice_sample()` para pegar 1000 observações.
+
+- Você pode usar essa semente para ficar reprodutível: `set.seed(42)`
+
+- Para obter o mapa, usar o pacote `{geobr}`
+
+- Para plotar o mapa, usar a função `geom_sf()`
+
+- Estamos desenhando CURVAS
+
+- Use facets
+
+#### Código
+
+```{r}
+#| echo: true
+#| eval: false
+
+estados <- geobr::read_state()
+
+set.seed(42)
+items |>
+  dplyr::count(
+    seller_state,
+    geolocation_lat_seller,
+    geolocation_lng_seller,
+    geolocation_lat_customer,
+    geolocation_lng_customer
+  ) |>
+  dplyr::filter(seller_state %in% c("SP", "MG", "RJ")) |>
+  dplyr::slice_sample(n = 1000) |>
+  ggplot() +
+  geom_sf(data = estados, fill = "gray95", size = .1) +
+  geom_curve(
+    mapping = aes(
+      x = geolocation_lng_seller,
+      y = geolocation_lat_seller,
+      xend = geolocation_lng_customer,
+      yend = geolocation_lat_customer
+    ),
+    arrow = arrow(length = unit(0.1, "inches")),
+    curvature = .2,
+    alpha = .2,
+    colour = "royalblue"
+  ) +
+  facet_wrap(~seller_state, strip.position = "bottom") +
+  theme_void(base_size = 16) +
+  labs(
+    title = "Para onde vão as compras?",
+    subtitle = "Comparando São Paulo, Minas Gerais e Rio de Janeiro",
+    caption = "Fonte: Olist"
+  )
+
+```
+
+
+:::
+
+# Parte 2
+
+## Outra base de dados
+
+Nosso objetivo será construir soluções em **R** e/ou **python** para problemas comuns de transformação e visualização de dados.
+
+## Leitura dos dados
+
+```{r}
+readr::read_rds("../data-raw/rds/match_min.rds") |>
+  head()
+```
+
+```{python}
+import pandas as pd
+pd.read_parquet('../data-raw/parquet/match_min.parquet').head()
+```
+
+## Exercício 1.1 (transformação) 🛑
+
+::: panel-tabset
+
+### Entrada
+
+```{r}
+#| echo: true
+glimpse(match_min)
+```
+
+### Tarefa
+
+- Selecionar as colunas `country_id`, `country_name`, `home_team_goal`, `away_team_goal`.
+- Filtrar para os campeonatos dos maiores países (Espanha, Inglaterra, Itália, França e Alemanha).
+- Criar uma coluna `total_goals`, com o total de gols.
+- Calcular a média, a mediana e o desvio padrão de gols por país
+- Ordenar o resultado de forma decrescente pela média
+
+### Saída R
+
+```{r}
+#| echo: false
+sumario <- match_min |>
+  select(country_id, country_name, home_team_goal, away_team_goal) |>
+  filter(country_id %in% c(21518, 1729, 4769, 7809, 10257)) |>
+  mutate(total_goals = home_team_goal + away_team_goal) |>
+  group_by(country_name) |>
+  summarise(
+    media = mean(total_goals),
+    desvio_padrao = sd(total_goals),
+    mediana = median(total_goals)
+  ) |>
+  arrange(desc(media))
+
+sumario
+```
+
+### Saída Python
+
+```{python}
+#| echo: false
+#| eval: true
+
+import pandas as pd
+pd.options.mode.chained_assignment = None
+
+df = r.match_min[['country_id', 'country_name', 'home_team_goal', 'away_team_goal']]
+df.loc[:, 'total_goals'] = df['home_team_goal'] + df['away_team_goal']
+df = df[df['country_id'].isin([21518, 1729, 4769, 7809, 10257])]
+
+df = df.groupby('country_name')['total_goals'].agg(['mean', 'median', 'std']).reset_index()
+df.sort_values('mean', ascending = False)
+```
+:::
+
+## Exercício 1.2 (barras exploratório) 🛑
+
+::: panel-tabset
+
+### Resultado esperado
+
+```{r}
+knitr::include_graphics("img/plot1.2.png")
+```
+
+:::
+
+
+## Exercício 1.3 (barras otimizado) 🛑🛑
+
+::: panel-tabset
+
+### Resultado esperado
+
+```{r}
+#| out-width: 80%
+#| dpi: 300
+knitr::include_graphics("img/plot1.3.png")
+```
+
+### Dicas
+
+- Utilize `case_when()` ou `case_match()` para mudar os nomes dos países.
+
+- Utilize `fct_reorder()` para ordenar a coluna `country_name` adequadamente.
+
+- Utilize `scale_fill_manual()` com os valores `cores <- c("#C4161C", "#009491")`
+
+- Utilize o ChatGPT para os aspectos estéticos.
+
+:::
+
+## Exercício 2.1 (join e pivotagem) 🛑🛑🛑
+
+::: panel-tabset
+### Entrada
+
+```{r}
+glimpse(team_attributes)
+```
+
+### Tarefa
+
+- Unir a base `team_attributes` com a base `team`
+- Filtrar para os times "Real Madrid", "Bayern", "Milan", "PSG" e "Manchester United"
+- Retirar as colunas que acabam com `_class`
+- Transformar a coluna `date` em `year`, contendo o ano
+- Calcular a média das estatísticas por tipo (`build_up_play_*`, `chance_creation_*`, `defence_*`) e empilhar as estatísticas por tipo (não necessariamente nessa ordem).
+
+
+### Saída R
+
+```{r}
+#| echo: false
+
+times <- c(243, 11, 21, 73, 47)
+
+team_filter <- team |>
+  filter(team_fifa_api_id %in% times) |>
+  select(-id)
+
+sumario <- team_attributes |>
+  inner_join(team_filter, join_by(team_api_id, team_fifa_api_id)) |>
+  select(-ends_with("class")) |>
+  mutate(year = year(ymd_hms(date))) |>
+  pivot_longer(c(build_up_play_speed:defence_team_width)) |>
+  separate_wider_delim(
+    name, delim = "_",
+    names = c("type", "metric"),
+    too_many = "merge"
+  ) |>
+  summarise(
+    value = mean(value, na.rm = TRUE),
+    .by = c(year, type, team_short_name, team_long_name)
+  )
+
+team_attributes |>
+  filter(id == 16) |>
+  dplyr::glimpse()
+
+sumario
+```
+
+### Saída Python
+
+```{python}
+times = [243, 11, 21, 73, 47]
+
+team_filter = (
+  r.team
+  .query("team_fifa_api_id == @times")
+)
+
+sumario = (
+  r.team_attributes
+  .merge(team_filter, on=['team_api_id', 'team_fifa_api_id'])
+  .filter(regex='^(?!.*_class$)')
+  .assign(year = lambda x: pd.to_datetime(x['date']).dt.year)
+  .melt(id_vars=['id_x', 'id_y', 'team_api_id', 'team_fifa_api_id', 'date', 'team_long_name', 'team_short_name', 'year'], var_name='metric')
+  .assign(
+    type = lambda x: x['metric'].str.split('_').str[0],
+    metric = lambda x: x['metric'].str.split('_').str[1]
+  )
+  .groupby(['year', 'type', 'team_short_name', 'team_long_name'])
+  .agg(value = ('value', 'mean'))
+  .reset_index()
+)
+
+```
+
+:::
+
+## Exercício 2.2 (linhas exploratório) 🛑🛑
+
+::: panel-tabset
+
+### Resultado esperado
+
+```{r}
+#| out-width: 80%
+knitr::include_graphics("img/plot2.2.png")
+```
+
+:::
+
+## Exercício 2.3 (linhas otimizado) 🛑🛑🛑
+
+::: panel-tabset
+
+### Resultado esperado
+
+```{r}
+#| out-width: 80%
+knitr::include_graphics("img/plot2.3.png")
+```
+
+### Dicas
+
+- Utilize `case_when()` ou `case_match()` para mudar os nomes da coluna `categoria`.
+
+- Utilize o parâmetro `legend.position=` da função `theme()`
+
+- Utilize `geom_smooth()` para montar a banda de confiança no fundo.
+
+- Utilize as cores anteriores + um cinza
+
+- Pode usar o ChatGPT para os aspectos estéticos.
+
+:::
+
