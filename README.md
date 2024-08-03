@@ -5,7 +5,7 @@ Materiais públicos da disciplina de Prática Avançada de Data Science e Visual
 ## Plano dos labs
 
 - **Lab 01** (03/08 13h00-17h00, presencial):
-    - Arrumação de dados
+    - Arrumação de dados e ggplot2
     - Feature engineering
 - **Lab 02** (14/08 19h00-22h30, remota):
     - exercícios ggplot2 de otimização visual
