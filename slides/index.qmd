@@ -70,7 +70,7 @@ Utilizaremos a base de dados da **olist**, para que vocês possam aproveitar os 
 
 ```{r}
 #| echo: true
-olist <- readr::read_rds(here::here("data-raw/rds/olist_items.rds"))
+olist <- arrow::read_parquet("https://github.com/padsInsper/202433-padsv/releases/download/dados/olist_items.parquet")
 
 dplyr::glimpse(olist)
 ```
@@ -408,8 +408,8 @@ readr::read_rds("../data-raw/rds/match_min.rds") |>
 ```
 
 ```{python}
-import pandas as pd
-pd.read_parquet('../data-raw/parquet/match_min.parquet').head()
+#| eval: false
+pd.read_parquet('https://github.com/padsInsper/202433-padsv/releases/download/dados/olist_items.parquet').head()
 ```
 
 ## Exercício 1.1 (transformação) 🛑
@@ -454,7 +454,7 @@ sumario
 
 ```{python}
 #| echo: false
-#| eval: true
+#| eval: false
 
 import pandas as pd
 pd.options.mode.chained_assignment = None
@@ -559,6 +559,7 @@ sumario
 ### Saída Python
 
 ```{python}
+#| eval: false
 times = [243, 11, 21, 73, 47]
 
 team_filter = (
