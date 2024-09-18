@@ -1,0 +1,125 @@
+---
+title: "Meu Dashboard"
+format: 
+  dashboard:
+    orientation: rows
+server: shiny
+theme: vapor
+---
+
+# {.sidebar}
+
+```{r}
+library(shiny)
+textInput("name", "What's your name?", "World")
+
+sliderInput(
+  inputId = "preco",
+  label = "Preço",
+  min = 0, max = 20000,
+  value = c(1000, 15000), width = "100%"
+)
+```
+
+# Página R
+
+## Row
+
+```{r}
+#| title: Card 1
+#| content: valuebox
+#| icon: pencil
+list(
+  value = 42
+)
+```
+
+```{r}
+#| title: Card 2
+#| content: valuebox
+#| icon: pencil
+list(
+  value = 42
+)
+```
+
+```{r}
+#| title: Card 3
+#| content: valuebox
+#| icon: pencil
+list(
+  value = 42
+)
+```
+
+## Row
+
+
+### Column {width=70%}
+
+```{r}
+plot(cars)
+```
+### Column {width=30%}
+
+```{r}
+plot(iris)
+```
+
+## Row
+
+```{r}
+knitr::kable(mtcars)
+```
+
+# Página python
+
+## Row
+
+### Column
+
+```{python}
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+sns.scatterplot(x='Sepal.Length', y='Sepal.Width', data=r.iris)
+```
+
+### Column
+
+```{r}
+plotOutput("grafico")
+```
+
+
+```{r}
+#| context: server
+
+library(dados)
+library(ggplot2)
+dados_filtrados <- reactive({
+
+  #browser()
+
+  diamante_filtrado <- diamante |>
+    dplyr::filter(
+      preco >= input$preco[1], 
+      preco <= input$preco[2]
+    )
+  #Sys.sleep(3)
+
+  diamante_filtrado
+})
+
+
+
+output$grafico <- renderPlot({
+
+  dados_filtrados() |>
+    ggplot(aes(x = preco, y = quilate, color = cor)) +
+    geom_point() +
+    theme_minimal()
+
+})
+```
+
