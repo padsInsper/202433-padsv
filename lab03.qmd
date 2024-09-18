@@ -1,0 +1,35 @@
+---
+title: Gráficos univariados muito legais
+jupyter: python3
+format: 
+  html: default
+  docx:
+    reference-doc: "exemplo.docx"
+lang: pt
+---
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+camaras = pd.read_csv('https://github.com/jtrecenti/main-cdad2/releases/download/data/camaras.csv')
+```
+
+
+## Variáveis categóricas
+
+A @fig-prop-decisao mostra a distribuição de frequências das decisões do segundo grau.
+
+
+```{python}
+#| label: fig-prop-decisao
+#| fig-cap: "Um gráfico sobre decisões dos recursos no TJSP"
+plt.figure()
+sns.countplot(data=camaras, x='decisao')
+```
+
+```{python}
+plt.figure()
+sns.countplot(data=camaras, x='decisao', order=camaras.value_counts('decisao').index)
+```
+
